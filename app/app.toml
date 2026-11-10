@@ -1,0 +1,7 @@
+port = 8080
+protocol = "http"          # http | tcp
+ready = "http:/health"     # or "tcp"
+workflows = [
+  # { id = "W1", name = "Register and log in" },
+]
+rules = []                 # e.g. ["R1", "R2", ...], each defined in SPEC.md

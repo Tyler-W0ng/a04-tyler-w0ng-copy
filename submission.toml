@@ -1,0 +1,3 @@
+assignment = "A04"
+members = []
+rule = ""   # the rule your vulnerability violates, e.g. "R7"
