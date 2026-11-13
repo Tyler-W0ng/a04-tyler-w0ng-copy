@@ -31,6 +31,12 @@ _lock = threading.Lock()
 _db = None
 
 
+def parse_date(value):
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value):
+        raise ValueError("expected YYYY-MM-DD")
+    return date.fromisoformat(value)
+
+
 def get_db():
     global _db
     if _db is None:
@@ -107,7 +113,8 @@ class Handler(BaseHTTPRequestHandler):
             return {}
         raw = self.rfile.read(length)
         try:
-            return json.loads(raw)
+            body = json.loads(raw)
+            return body if isinstance(body, dict) else None
         except Exception:
             return None
 
@@ -163,8 +170,8 @@ class Handler(BaseHTTPRequestHandler):
         if body is None:
             return self.send_json(400, {"error": "invalid json"})
         try:
-            start = date.fromisoformat(body.get("start_date", ""))
-            end = date.fromisoformat(body.get("end_date", ""))
+            start = parse_date(body.get("start_date"))
+            end = parse_date(body.get("end_date"))
         except ValueError:
             return self.send_json(400, {"error": "invalid dates"})
         if end < start:
@@ -288,7 +295,7 @@ class Handler(BaseHTTPRequestHandler):
         if body is None:
             return self.send_json(400, {"error": "invalid json"})
         amount = body.get("amount")
-        if not isinstance(amount, int) or amount <= 0:
+        if type(amount) is not int or amount <= 0:
             return self.send_json(400, {"error": "amount must be a positive integer"})
         if amount > account["balance"]:
             return self.send_json(400, {"error": "insufficient balance"})
@@ -323,8 +330,8 @@ class Handler(BaseHTTPRequestHandler):
         if body is None:
             return self.send_json(400, {"error": "invalid json"})
         try:
-            start = date.fromisoformat(body.get("start_date", ""))
-            end = date.fromisoformat(body.get("end_date", ""))
+            start = parse_date(body.get("start_date"))
+            end = parse_date(body.get("end_date"))
         except ValueError:
             return self.send_json(400, {"error": "invalid dates"})
         if end < start:

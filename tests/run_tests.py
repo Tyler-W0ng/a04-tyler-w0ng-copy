@@ -65,6 +65,11 @@ def balance(token):
 def w1():
     t = login("e_carol", "carol-pass")
     before = balance(t)
+    for invalid in ("20290301", "2029-W09-4", "2029-02-30", None, 20290301):
+        code, _ = call("POST", "/requests", token=t,
+                       body={"start_date": invalid, "end_date": "2029-03-03"})
+        check(code == 400, f"invalid date {invalid!r} returned {code}")
+    check(balance(t) == before, "invalid requests changed balance")
     code, body = call("POST", "/requests", token=t,
                       body={"start_date": "2029-03-01", "end_date": "2029-03-03"})
     check(code == 201, f"submit returned {code}: {body}")
@@ -119,6 +124,14 @@ def w3():
     check(code == 200, f"cancel returned {code}")
     check(body["state"] == "CANCELLED", f"state {body['state']}")
     check(balance(t) == before, "cancel must restore the reserved days")
+    code, r = call("POST", "/requests", token=t,
+                   body={"start_date": "2029-07-01", "end_date": "2029-07-02"})
+    check(code == 201, "submit for approved cancellation failed")
+    mgr = login("m_alice", "alice-pass")
+    code, _ = call("POST", f"/requests/{r['id']}/approve", token=mgr)
+    check(code == 200, "approval failed")
+    code, _ = call("POST", f"/requests/{r['id']}/cancel", token=t)
+    check(code == 200 and balance(t) == before, "approved cancellation must refund days")
 
 
 # --- W4: transfer leave to a coworker ------------------------------------
@@ -128,6 +141,10 @@ def w4():
     frank = login("e_frank", "frank-pass")
     erin_before = balance(erin)
     frank_before = balance(frank)
+    for invalid in (True, 0, -1, 1.5, "5"):
+        code, _ = call("POST", "/transfers", token=erin,
+                       body={"to_username": "e_frank", "amount": invalid})
+        check(code == 400, f"invalid transfer amount {invalid!r} returned {code}")
     code, body = call("POST", "/transfers", token=erin,
                       body={"to_username": "e_frank", "amount": 5})
     check(code == 200, f"transfer returned {code}: {body}")
@@ -139,6 +156,10 @@ def w4():
 
 def w5():
     mgr = login("m_bob", "bob-pass")
+    for invalid in ("20291201", "2029-W48-6", None, 20291201):
+        code, _ = call("POST", "/blocked-periods", token=mgr,
+                       body={"start_date": invalid, "end_date": "2029-12-07"})
+        check(code == 400, f"invalid blocked date {invalid!r} returned {code}")
     code, bp = call("POST", "/blocked-periods", token=mgr,
                     body={"start_date": "2029-12-01", "end_date": "2029-12-07"})
     check(code == 201, f"create blocked period returned {code}")
@@ -148,6 +169,9 @@ def w5():
           "created blocked period not listed")
 
     erin = login("e_erin", "erin-pass")
+    code, _ = call("POST", "/requests", token=erin,
+                   body={"start_date": "20291203", "end_date": "20291204"})
+    check(code == 400, "compact dates must not bypass a blocked period")
     code, body = call("POST", "/requests", token=erin,
                       body={"start_date": "2029-12-03", "end_date": "2029-12-04"})
     check(code == 409, f"overlapping request should be refused, got {code}")

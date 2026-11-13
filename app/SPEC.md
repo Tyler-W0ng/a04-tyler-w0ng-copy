@@ -80,7 +80,9 @@ team.
 
 ## 5. Interface
 
-All request and response bodies are JSON. Dates are ISO `YYYY-MM-DD`.
+All request bodies, when present, are JSON objects; responses are JSON objects.
+Dates must be strings in exactly `YYYY-MM-DD` format and valid calendar dates;
+compact dates and ISO week dates are rejected with `400`.
 Common error responses: `400` (malformed input), `401` (not authenticated),
 `403` (not allowed), `404` (no such object), `409` (conflicts with the
 object's current state).
